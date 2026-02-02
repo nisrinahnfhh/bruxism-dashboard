@@ -1,13 +1,123 @@
+// "use client";
+// import { useEffect, useState } from 'react';
+// import { getStatsCount, getRecentLogs } from '../lib/api';
+// import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+// import { Users, MessageSquare, Clock } from 'lucide-react';
+// import { SymptomLog } from '../types/database';
+
+// export default function DashboardPage() {
+//   const [stats, setStats] = useState({ totalPatients: 0 });
+//   const [recentData, setRecentData] = useState([]);
+//   const [loading, setLoading] = useState(true);
+
+//   useEffect(() => {
+//     async function fetchData() {
+//       try {
+//         const [countRes, recentRes] = await Promise.all([
+//           getStatsCount(),
+//           getRecentLogs()
+//         ]);
+        
+//         // SESUAIKAN DENGAN DashboardController.js (total_patients)
+//         setStats({
+//           totalPatients: countRes.data.total_patients || 0,
+//         });
+
+//         // SESUAIKAN DENGAN DashboardController.js (res.json({ success: true, data: logs }))
+//         setRecentData(recentRes.data.data || []); 
+//       } catch (err) {
+//         console.error("Gagal mengambil data dashboard", err);
+//       } finally {
+//         setLoading(false);
+//       }
+//     }
+//     fetchData();
+//   }, []);
+
+//   if (loading) return <div className="p-10 text-center">Memuat data analisis...</div>;
+
+//   return (
+//     <div className="space-y-8">
+//       <h1 className="text-3xl font-bold text-slate-800">Dashboard Overview</h1>
+
+//       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+//         {/* Menggunakan data total_patients dari backend */}
+//         <StatCard 
+//           title="Total Pasien" 
+//           value={stats.totalPatients} 
+//           icon={<Users className="text-blue-600" />} 
+//           color="bg-blue-50" 
+//         />
+//         {/* Stat tambahan bisa dihitung dari panjang recentData jika backend belum menyediakan count khusus */}
+//         <StatCard 
+//           title="Log Terbaru" 
+//           value={recentData.length} 
+//           icon={<MessageSquare className="text-green-600" />} 
+//           color="bg-green-50" 
+//         />
+//       </div>
+
+//       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+//         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+//           <h3 className="flex items-center gap-2 mb-4 text-lg font-semibold text-slate-700">
+//             <Clock size={20} /> Statistik Jawaban
+//           </h3>
+//           <div className="h-80 w-full">
+//             <ResponsiveContainer width="100%" height="100%">
+//               <BarChart data={recentData}>
+//                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
+//                 <XAxis dataKey="phone_number" hide />
+//                 <YAxis />
+//                 <Tooltip />
+//                 <Bar dataKey="id" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Log ID" />
+//               </BarChart>
+//             </ResponsiveContainer>
+//           </div>
+//         </div>
+
+//         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+//           <h3 className="mb-4 text-lg font-semibold text-slate-700">10 Interaksi Terbaru</h3>
+//           <div className="space-y-4">
+//             {recentData.map((log: SymptomLog) => (
+//               <div key={log.id} className="flex items-center justify-between p-3 transition rounded-lg hover:bg-slate-50">
+//                 <div className="overflow-hidden">
+//                   <p className="text-sm font-bold text-slate-700">{log.phone_number}</p>
+//                   <p className="text-xs italic truncate text-slate-500">{log.answer}</p>
+//                 </div>
+//                 <span className="text-[10px] text-slate-400 whitespace-nowrap ml-4">
+//                   {new Date(log.createdAt).toLocaleTimeString('id-ID')}
+//                 </span>
+//               </div>
+//             ))}
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+// function StatCard({ title, value, icon, color }: { title: string; value: number; icon: React.ReactNode; color: string }) {
+//   return (
+//     <div className="flex items-center p-6 bg-white border shadow-sm rounded-2xl border-slate-100 gap-5">
+//       <div className={`p-4 rounded-xl ${color}`}>{icon}</div>
+//       <div>
+//         <p className="text-sm font-medium text-slate-500">{title}</p>
+//         <p className="text-2xl font-bold text-slate-800">{value}</p>
+//       </div>
+//     </div>
+//   );
+// }
+
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { getStatsCount, getRecentLogs } from '../lib/api';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Users, MessageSquare, Activity, Clock } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
+import { Users, MessageSquare, Activity, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
 import { SymptomLog } from '../types/database';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({ totalPatients: 0 });
-  const [recentData, setRecentData] = useState([]);
+  const [recentData, setRecentData] = useState<SymptomLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,13 +127,7 @@ export default function DashboardPage() {
           getStatsCount(),
           getRecentLogs()
         ]);
-        
-        // SESUAIKAN DENGAN DashboardController.js (total_patients)
-        setStats({
-          totalPatients: countRes.data.total_patients || 0,
-        });
-
-        // SESUAIKAN DENGAN DashboardController.js (res.json({ success: true, data: logs }))
+        setStats({ totalPatients: countRes.data.total_patients || 0 });
         setRecentData(recentRes.data.data || []); 
       } catch (err) {
         console.error("Gagal mengambil data dashboard", err);
@@ -34,59 +138,118 @@ export default function DashboardPage() {
     fetchData();
   }, []);
 
-  if (loading) return <div className="p-10 text-center">Memuat data analisis...</div>;
+  // --- LOGIKA ANALISIS DATA ---
+  const analysis = useMemo(() => {
+    let nyeri = 0;
+    let tidakNyeri = 0;
+
+    recentData.forEach(log => {
+      const ans = log.answer.toLowerCase();
+      if (ans.includes('nyeri') || ans.includes('sakit') || ans.includes('ya')) {
+        nyeri++;
+      } else if (ans.includes('tidak') || ans.includes('gak') || ans.includes('ga ')) {
+        tidakNyeri++;
+      }
+    });
+
+    return [
+      { name: 'Nyeri/Ya', value: nyeri, color: '#ef4444' },
+      { name: 'Normal/Tidak', value: tidakNyeri, color: '#10b981' }, 
+    ];
+  }, [recentData]);
+
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+      <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      <p className="text-slate-500 font-medium animate-pulse">Menganalisis data medis...</p>
+    </div>
+  );
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-bold text-slate-800">Dashboard Overview</h1>
+    <div className="max-w-7xl mx-auto space-y-8 pb-10">
+      <div>
+        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Dashboard Data Pasien Bruxism</h1>
+        <p className="text-slate-500 mt-1">Ringkasan kondisi kesehatan pasien berdasarkan interaksi chatbot.</p>
+      </div>
 
+      {/* Grid Statistik Utama */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Menggunakan data total_patients dari backend */}
         <StatCard 
           title="Total Pasien" 
           value={stats.totalPatients} 
-          icon={<Users className="text-blue-600" />} 
-          color="bg-blue-50" 
+          icon={<Users size={24} />} 
+          color="bg-blue-50 text-blue-600" 
         />
-        {/* Stat tambahan bisa dihitung dari panjang recentData jika backend belum menyediakan count khusus */}
         <StatCard 
-          title="Log Terbaru" 
-          value={recentData.length} 
-          icon={<MessageSquare className="text-green-600" />} 
-          color="bg-green-50" 
+          title="Pasien Melapor Nyeri" 
+          value={analysis[0].value} 
+          icon={<AlertCircle size={24} />} 
+          color="bg-red-50 text-red-600" 
+        />
+        <StatCard 
+          title="Pasien Normal" 
+          value={analysis[1].value} 
+          icon={<CheckCircle2 size={24} />} 
+          color="bg-emerald-50 text-emerald-600" 
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <h3 className="flex items-center gap-2 mb-4 text-lg font-semibold text-slate-700">
-            <Clock size={20} /> Statistik Jawaban
-          </h3>
-          <div className="h-80 w-full">
+        {/* Chart Statistik Jawaban */}
+        <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="flex items-center gap-2 text-lg font-bold text-slate-800">
+               Distribusi Gejala
+            </h3>
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 px-2 py-1 rounded-md">Real-time</span>
+          </div>
+          
+          <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={recentData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="phone_number" hide />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="id" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Log ID" />
+              <BarChart data={analysis}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
+                <Tooltip 
+                  cursor={{fill: '#f8fafc'}}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                />
+                <Bar dataKey="value" radius={[10, 10, 0, 0]} barSize={60}>
+                  {analysis.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
+          <p className="mt-4 text-xs text-slate-400 text-center italic">
+            Data dihitung berdasarkan kata kunci nyeri/sakit vs tidak pada log terbaru.
+          </p>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <h3 className="mb-4 text-lg font-semibold text-slate-700">10 Interaksi Terbaru</h3>
-          <div className="space-y-4">
-            {recentData.map((log: SymptomLog) => (
-              <div key={log.id} className="flex items-center justify-between p-3 transition rounded-lg hover:bg-slate-50">
-                <div className="overflow-hidden">
-                  <p className="text-sm font-bold text-slate-700">{log.phone_number}</p>
-                  <p className="text-xs italic truncate text-slate-500">{log.answer}</p>
+        {/* 10 Interaksi Terbaru */}
+        <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
+          <h3 className="mb-6 text-lg font-bold text-slate-800 flex items-center gap-2">
+            Interaksi Terbaru
+          </h3>
+          <div className="space-y-3">
+            {recentData.slice(0, 6).map((log: SymptomLog) => (
+              <div key={log.id} className="group flex items-center justify-between p-4 bg-slate-50/50 hover:bg-blue-50 rounded-2xl transition-all border border-transparent hover:border-blue-100">
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm shrink-0">
+                    <Users size={18} className="text-slate-400" />
+                  </div>
+                  <div className="overflow-hidden">
+                    <p className="text-sm font-bold text-slate-700 truncate">{log.phone_number}</p>
+                    <p className="text-xs text-slate-500 italic truncate max-w-[180px]">{log.answer}</p>
+                  </div>
                 </div>
-                <span className="text-[10px] text-slate-400 whitespace-nowrap ml-4">
-                  {new Date(log.createdAt).toLocaleTimeString('id-ID')}
-                </span>
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-[10px] font-bold text-slate-400">
+                    {new Date(log.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  <ArrowRight size={14} className="text-slate-300 group-hover:text-blue-500 transition-colors" />
+                </div>
               </div>
             ))}
           </div>
@@ -96,13 +259,19 @@ export default function DashboardPage() {
   );
 }
 
+// Komponen Card yang sudah dipercantik
 function StatCard({ title, value, icon, color }: { title: string; value: number; icon: React.ReactNode; color: string }) {
   return (
-    <div className="flex items-center p-6 bg-white border shadow-sm rounded-2xl border-slate-100 gap-5">
-      <div className={`p-4 rounded-xl ${color}`}>{icon}</div>
-      <div>
-        <p className="text-sm font-medium text-slate-500">{title}</p>
-        <p className="text-2xl font-bold text-slate-800">{value}</p>
+    <div className="group relative bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all overflow-hidden">
+      <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50 rounded-full -mr-12 -mt-12 group-hover:bg-blue-50 transition-colors"></div>
+      <div className="relative flex items-center gap-5">
+        <div className={`p-4 rounded-2xl shadow-inner ${color}`}>
+          {icon}
+        </div>
+        <div>
+          <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">{title}</p>
+          <p className="text-3xl font-black text-slate-900">{value.toLocaleString()}</p>
+        </div>
       </div>
     </div>
   );

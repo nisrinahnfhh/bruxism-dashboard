@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Question, Patient, SymptomLog, PatientDetailResponse } from '../types/database'; 
+import { Question, SymptomLog, PatientDetailResponse } from '../types/database'; 
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -32,5 +32,7 @@ export const deleteQuestion = (id: number) => api.delete(`/question/${id}`);
 export const getLogs = () => api.get<SymptomLog[]>('/patients/logs'); 
 export const getStatsCount = () => api.get('/admin/stats/count');
 export const getRecentLogs = () => api.get('/admin/stats/recent');
+
+export const getBotStatus = () => api.get('/admin/bot/status');
 
 export default api;

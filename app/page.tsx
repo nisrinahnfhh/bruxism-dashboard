@@ -35,7 +35,11 @@ export default function DashboardPage() {
     }
     fetchData();
 
-    const rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const rawUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (!rawUrl) {
+      console.error('NEXT_PUBLIC_API_URL is not defined');
+      return;
+    }
     const socketUrl = new URL(rawUrl).origin; 
     
     const socket: Socket = io(socketUrl, {

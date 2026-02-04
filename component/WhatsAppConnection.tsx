@@ -20,11 +20,16 @@ const WhatsAppConnection: React.FC = () => {
 
     // 1. Inisialisasi Socket
     // Pastikan URL ini benar. Jika backend di port 3001, harus http://localhost:3001
-    const rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const rawUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (!rawUrl) {
+      console.error('NEXT_PUBLIC_API_URL is not defined');
+      return;
+    }
+    const socketUrl = new URL(rawUrl).origin; 
     
     // AMBIL ORIGIN SAJA (Hapus /api, /v1, dll)
     // Contoh: "http://localhost:3001/api" -> "http://localhost:3001"
-    const socketUrl = new URL(rawUrl).origin; 
+    //const socketUrl = new URL(rawUrl).origin; 
     
     //addLog(`Target Socket URL: ${socketUrl}`); // Cek log ini di layar nanti
 
